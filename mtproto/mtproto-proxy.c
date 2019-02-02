@@ -62,7 +62,6 @@
 #include "mtproto-config.h"
 #include "common/tl-parse.h"
 #include "engine/engine.h"
-#include "engine/engine-net.h"
 
 #ifndef COMMIT
 #define COMMIT "unknown"
@@ -2124,7 +2123,6 @@ void usage (void) {
   exit (2);
 }
 
-server_functions_t mtproto_front_functions;
 int f_parse_option (int val) {
   char *colon, *ptr;
   switch (val) {
@@ -2176,10 +2174,6 @@ int f_parse_option (int val) {
       ping_interval = PING_INTERVAL;
     }
     break;
-  case 2000:
-    engine_set_http_fallback (&ct_http_server, &http_methods_stats);
-    mtproto_front_functions.flags &= ~ENGINE_NO_PORT;
-    break;
   case 'S':
   case 'P':
     {
@@ -2215,6 +2209,9 @@ int f_parse_option (int val) {
       }
     }
     break;
+  case 'R':
+    tcp_rpcs_set_ext_rand_pad_only(1);
+    break;
   default:
     return -1;
   }
@@ -2222,7 +2219,6 @@ int f_parse_option (int val) {
 }
 
 void mtfront_prepare_parse_options (void) {
-  parse_option ("http-stats", no_argument, 0, 2000, "allow http server to answer on stats queries");
   parse_option ("mtproto-secret", required_argument, 0, 'S', "16-byte secret in hex mode");
   parse_option ("proxy-tag", required_argument, 0, 'P', "16-byte proxy tag in hex mode to be passed along with all forwarded queries");
   parse_option ("max-special-connections", required_argument, 0, 'C', "sets maximal number of accepted client connections per worker");
@@ -2231,6 +2227,7 @@ void mtfront_prepare_parse_options (void) {
   // parse_option ("outbound-connections-ps", required_argument, 0, 'o', "limits creation rate of outbound connections to mtproto-servers (default %d)", DEFAULT_OUTBOUND_CONNECTION_CREATION_RATE);
   parse_option ("slaves", required_argument, 0, 'M', "spawn several slave workers");
   parse_option ("ping-interval", required_argument, 0, 'T', "sets ping interval in second for local TCP connections (default %.3lf)", PING_INTERVAL);
+  parse_option ("random-padding-only", no_argument, 0, 'R', "allow only clients with random padding option enabled");
 }
 
 void mtfront_parse_extra_args (int argc, char *argv[]) /* {{{ */ {
@@ -2335,8 +2332,7 @@ server_functions_t mtproto_front_functions = {
   .FullVersionStr = FullVersionStr,
   .ShortVersionStr = "mtproxy",
   .parse_function = mtfront_parse_function,
-  .flags = ENGINE_NO_PORT
-  //.http_functions = &http_methods_stats
+  .http_functions = &http_methods_stats
 };
 
 int main (int argc, char *argv[]) {
