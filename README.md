@@ -16,6 +16,7 @@ yum groupinstall "Development Tools"
 
 Clone the repo:
 ```bash
+cd /opt
 git clone https://github.com/mediatube/MTProxy
 cd MTProxy
 ```
@@ -27,7 +28,12 @@ make && cd objs/bin
 ```
 
 If the build has failed, you should run `make clean` before building it again.
-
+```bash
+firewall-cmd --zone=public --add-port=443/tcp --permanent
+```
+```bash
+firewall-cmd --reload
+```
 ## Running
 1. Obtain a secret, used to connect to telegram servers.
 ```bash
@@ -83,10 +89,10 @@ Description=MTProxy
 After=network.target
 
 [Service]
-Type=simple
-WorkingDirectory=/opt/MTProxy
-ExecStart=/opt/MTProxy/mtproto-proxy -u nobody -p 8888 -H 443 -S <secret> -P <proxy tag> <other params>
+WorkingDirectory=/opt/MTProxy/objs/bin/
+ExecStart=/opt/MTProxy/objs/bin/mtproto-proxy -R -u nobody -p 8888 -H 443 -S <secret> --aes-pwd proxy-secret proxy-multi.conf -M 1
 Restart=on-failure
+
 
 [Install]
 WantedBy=multi-user.target
